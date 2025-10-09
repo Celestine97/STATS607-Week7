@@ -2,22 +2,24 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from analysis import plot_mse_vs_df, plot_small_multiples
-from models import  MyModel
+from Models import  MyModel
 from Data_Generation import *
 
-def evaluate_one_run(n, p, df, rho, snr, rep, method, rng):
+def evaluate_one_run(n, ar, df, rho, snr, rep, method, rng):
     """
     Run one simulation replicate and return a result dict.
     """
+    p = int(n* ar)
     X_temp = generate_design_matrix(n, p, rho=rho, rng=rng)
     beta = generate_beta(p, snr=snr, X=X_temp, rng=rng)
     X, y = generate_data(n, p, beta=beta, df=df, rho=rho, rng=rng)
-    model_results = MyModel(X, y, method)
+    model_results = MyModel(X, y, method, quantile=0.5)
+    mse = model_results["mse"]
 
     return {
         "method": method,
         "n": n,
-        "p": p,
+        "ar": ar,
         "df": df,
         "rho": rho,
         "SNR": snr,
@@ -26,10 +28,11 @@ def evaluate_one_run(n, p, df, rho, snr, rep, method, rng):
     }
 
 
-def run_simulations(n=200,p=50,dfs=[1, 2, 3, 20, np.inf],rhos=[0.2],snrs=[1, 5, 10],reps=30,methods=["ols", "lad", "huber"],n_jobs=-1,):
-
+def run_simulations(n=200,aspect_ratio = [0.2,0.5,0.8],dfs=[1, 2, 3, 20, np.inf],rhos=[0.2],snrs=[1, 5, 10],reps=30,methods=["linear", "quantile", "huber"],n_jobs=-1,seed=42,):
+    rng_master = np.random.default_rng(seed)
     param_grid = [
-        (df, rho, snr, rep, method)
+        (ar, df, rho, snr, rep, method)
+        for ar in aspect_ratio
         for df in dfs
         for rho in rhos
         for snr in snrs
@@ -40,8 +43,8 @@ def run_simulations(n=200,p=50,dfs=[1, 2, 3, 20, np.inf],rhos=[0.2],snrs=[1, 5, 
     print(f"Running {len(param_grid)} total simulation runs...")
 
     results = Parallel(n_jobs=n_jobs)(
-        delayed(evaluate_one_run)(n, p, df, rho, snr, rep, method)
-        for (df, rho, snr, rep, method) in param_grid
+        delayed(evaluate_one_run)(n, ar, df, rho, snr, rep, method,rng=np.random.default_rng(rng_master.integers(1e9)))
+        for (ar,df, rho, snr, rep, method) in param_grid
     )
 
     df_results = pd.DataFrame(results)

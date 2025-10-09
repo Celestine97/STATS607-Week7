@@ -28,10 +28,10 @@ def MyModel(X, y, method, quantile=None):
         model.fit(X, y)
         y_pred = model.predict(X)
         
-        results = pd.DataFrame({
+        results = {
             'model_type': 'Linear Regression',
             'mse': ((y - y_pred) ** 2).mean()
-        })
+        }
         return results
     
     if method == 'quantile':
@@ -39,10 +39,10 @@ def MyModel(X, y, method, quantile=None):
         model.fit(X, y)
         y_pred = model.predict(X)
         
-        results = pd.DataFrame({
+        results = {
             'model_type': 'Quantile Regression',
             'mse': ((y - y_pred) ** 2).mean()
-        })
+        }
         return results
 
     if method == 'huber':
@@ -50,8 +50,8 @@ def MyModel(X, y, method, quantile=None):
         model.fit(X, y)
         y_pred = model.predict(X)
         
-        results = pd.DataFrame({
+        results = {
             'model_type': 'Huber Regression',
             'mse': ((y - y_pred) ** 2).mean()
-        })
+        }
         return results
