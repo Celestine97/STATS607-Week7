@@ -3,7 +3,7 @@ from sklearn.linear_model import QuantileRegressor
 from sklearn.linear_model import HuberRegressor
 import pandas as pd
 
-def MyModel(X, y, method, quantile=None):
+def MyModel(X, y, method, quantile=0.5):
     """
     Fits a regression model based on the specified method.
     -------
@@ -12,7 +12,7 @@ def MyModel(X, y, method, quantile=None):
             Training data.
         y : array-like, shape (n_samples,)
             Target values.
-        method : str
+        method : strs
             The type of regression model to fit. Options are 'linear', 'quantile', 'huber'.
         quantile : float, optional
             The quantile to estimate if method is 'quantile'. Must be between 0 and
@@ -35,7 +35,7 @@ def MyModel(X, y, method, quantile=None):
         return results
     
     if method == 'quantile':
-        model = QuantileRegressor(quantile=0.5, alpha=0)
+        model = QuantileRegressor(quantile=quantile, alpha=0)
         model.fit(X, y)
         y_pred = model.predict(X)
         
