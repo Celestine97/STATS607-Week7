@@ -4,7 +4,7 @@ from joblib import Parallel, delayed
 from analysis import plot_mse_vs_df, plot_small_multiples
 from Models import  MyModel
 from Data_Generation import *
-
+!pip install joblib
 def evaluate_one_run(n, ar, df, rho, snr, rep, method, rng):
     """
     Run one simulation replicate and return a result dict.

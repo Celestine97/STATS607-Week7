@@ -35,7 +35,7 @@ def MyModel(X, y, method, quantile=None):
         return results
     
     if method == 'quantile':
-        model = QuantileRegressor(quantile=quantile, alpha=0)
+        model = QuantileRegressor(quantile=0.5, alpha=0)
         model.fit(X, y)
         y_pred = model.predict(X)
         
