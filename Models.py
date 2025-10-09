@@ -46,7 +46,7 @@ def MyModel(X, y, method, quantile=0.5):
         return results
 
     if method == 'huber':
-        model = HuberRegressor()
+        model = HuberRegressor(max_iter=1000)
         model.fit(X, y)
         y_pred = model.predict(X)
         
