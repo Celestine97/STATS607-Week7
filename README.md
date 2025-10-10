@@ -113,9 +113,27 @@ Implements three regression approaches:
 
 ## Installation
 
+Create a virtual environment (recommended):
+
 ```bash
-# Required packages
-pip install numpy scipy scikit-learn pandas matplotlib seaborn joblib
+python -m venv venv
+```
+
+Activate the virtual environment:
+```bash
+# On Windows (Command Prompt)
+venv\Scripts\activate
+
+# On Windows (Git Bash or PowerShell)
+source venv/Scripts/activate
+
+# On macOS/Linux
+source venv/bin/activate
+```
+
+Required packages:
+```bash
+pip install requirements.txt
 ```
 
 ## Usage
