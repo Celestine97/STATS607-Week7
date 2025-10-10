@@ -178,10 +178,11 @@ X, y = generate_data(n, p, beta=beta, df=df, rho=0.5, rng=rng)
 
 ## Results
 
+![](mse_small_multiples.png)
+![](mse_vs_df.png)
+
 - **Heavy tails (df ≤ 3)**: Quantile and Huber outperform Linear
 - **Light tails (df ≥ 20)**: All methods perform similarly
-
-![](mse_vs_df.png)
 - **High SNR**: Differences between methods diminish
 - **Low SNR**: Robust methods show clearer advantages
 
