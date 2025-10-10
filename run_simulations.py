@@ -36,7 +36,7 @@ def evaluate_one_run(n, ar, df, rho, snr, rep, methods, rng):
 def run_simulations(
     n=200,
     aspect_ratio=[0.2, 0.5, 0.8],
-    dfs=[1, 2, 3, 20, np.inf],
+    dfs=[1, 2, 3, 5, 10, 15, 20, np.inf],
     rhos=[0.2],
     snrs=[1, 5, 10],
     reps=30,
@@ -96,3 +96,5 @@ if __name__ == "__main__":
     df_results = run_simulations()
     analyze_results(df_results)
     print("Simulation and analysis complete.")
+
+
