@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 from analysis import plot_mse_vs_df, plot_small_multiples
-from Models import  MyModel
+from Models import MyModel
 from Data_Generation import *
+
 def evaluate_one_run(n, ar, df, rho, snr, rep, methods, rng):
     """
     Run one simulation replicate and evaluate multiple methods on the same dataset.
@@ -11,13 +12,15 @@ def evaluate_one_run(n, ar, df, rho, snr, rep, methods, rng):
     """
     p = int(n * ar)
 
+    # Generate data with true beta
     X_temp = generate_design_matrix(n, p, rho=rho, rng=rng)
     beta = generate_beta(p, snr=snr, X=X_temp, rng=rng)
     X, y = generate_data(n, p, beta=beta, df=df, rho=rho, rng=rng)
 
     results = []
     for method in methods:
-        model_results = MyModel(X, y, method, quantile=0.5)
+        # Pass true beta to MyModel for MSE computation
+        model_results = MyModel(X, y, beta_true=beta, method=method, quantile=0.5)
         mse = model_results["mse"]
 
         results.append({
@@ -47,6 +50,8 @@ def run_simulations(
     """
     Run simulation grid: for each combination of parameters,
     generate one dataset and fit all methods (linear, quantile, huber).
+    
+    Computes MSE of coefficient estimates: MSE(β̂) = mean((β̂ - β)²)
     """
 
     rng_master = np.random.default_rng(seed)
@@ -84,10 +89,10 @@ def analyze_results(df_results):
     Aggregate results by df and method, then call plotting functions.
     """
     df_summary = (
-    df_results.groupby(["SNR", "df", "method"])["mse"]
-    .mean()
-    .reset_index()
-)
+        df_results.groupby(["SNR", "df", "method"])["mse"]
+        .mean()
+        .reset_index()
+    )
 
     plot_mse_vs_df(df_summary, output="mse_vs_df.png")
     plot_small_multiples(df_results, output="mse_small_multiples.png")
@@ -96,5 +101,3 @@ if __name__ == "__main__":
     df_results = run_simulations()
     analyze_results(df_results)
     print("Simulation and analysis complete.")
-
-

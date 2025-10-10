@@ -1,57 +1,93 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import QuantileRegressor
 from sklearn.linear_model import HuberRegressor
+from sklearn.preprocessing import StandardScaler
+import numpy as np
 import pandas as pd
+import warnings
 
-def MyModel(X, y, method, quantile=0.5):
+def MyModel(X, y, beta_true, method, quantile=0.5):
     """
-    Fits a regression model based on the specified method.
+    Fits a regression model based on the specified method and computes coefficient MSE.
     -------
     Parameters:
         X : array-like, shape (n_samples, n_features)
             Training data.
         y : array-like, shape (n_samples,)
             Target values.
-        method : strs
+        beta_true : array-like, shape (n_features,)
+            True coefficient vector for computing MSE.
+        method : str
             The type of regression model to fit. Options are 'linear', 'quantile', 'huber'.
         quantile : float, optional
             The quantile to estimate if method is 'quantile'. Must be between 0 and
-            1. Default is None.
+            1. Default is 0.5.
     -------
     Returns:
-        results : pd.DataFrame
-            A DataFrame containing the model type and mean squared error.
+        results : dict
+            A dictionary containing the model type, estimated coefficients, and MSE of beta.
     """
     
     if method == 'linear':
         model = LinearRegression()
         model.fit(X, y)
-        y_pred = model.predict(X)
+        beta_hat = model.coef_
+        
+        # Compute MSE of coefficient estimates
+        mse_beta = np.mean((beta_hat - beta_true) ** 2)
         
         results = {
             'model_type': 'Linear Regression',
-            'mse': ((y - y_pred) ** 2).mean()
+            'beta_hat': beta_hat,
+            'mse': mse_beta
         }
         return results
     
     if method == 'quantile':
-        model = QuantileRegressor(quantile=quantile, alpha=0)
+        # Use robust solver for better convergence
+        model = QuantileRegressor(
+            quantile=quantile, 
+            alpha=0,
+            solver='highs'  # More robust solver
+        )
         model.fit(X, y)
-        y_pred = model.predict(X)
+        beta_hat = model.coef_
+        
+        # Compute MSE of coefficient estimates
+        mse_beta = np.mean((beta_hat - beta_true) ** 2)
         
         results = {
             'model_type': 'Quantile Regression',
-            'mse': ((y - y_pred) ** 2).mean()
+            'beta_hat': beta_hat,
+            'mse': mse_beta
         }
         return results
 
     if method == 'huber':
-        model = HuberRegressor(max_iter=1000)
-        model.fit(X, y)
-        y_pred = model.predict(X)
+        # Standardize features for better convergence
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        # Increase max_iter and set tighter tolerance
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=UserWarning)
+            model = HuberRegressor(
+                max_iter=2000,
+                epsilon=1.35,  # Default tuning parameter
+                tol=1e-5,      # Convergence tolerance
+                alpha=0.0001   # Small regularization can help convergence
+            )
+            model.fit(X_scaled, y)
+        
+        # Transform coefficients back to original scale
+        beta_hat = model.coef_ / scaler.scale_
+        
+        # Compute MSE of coefficient estimates
+        mse_beta = np.mean((beta_hat - beta_true) ** 2)
         
         results = {
             'model_type': 'Huber Regression',
-            'mse': ((y - y_pred) ** 2).mean()
+            'beta_hat': beta_hat,
+            'mse': mse_beta
         }
         return results
