@@ -113,6 +113,13 @@ Implements three regression approaches:
 
 ## Installation
 
+Clone using the web URL:
+
+```bash
+git clone https://github.com/Celestine97/STATS607-Week7.git
+cd STATS607-Week7
+```
+
 Create a virtual environment (recommended):
 
 ```bash
@@ -133,7 +140,7 @@ source venv/bin/activate
 
 Required packages:
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ## Usage
