@@ -27,6 +27,8 @@ def MyModel(X, y, beta_true, method, quantile=0.5):
         results : dict
             A dictionary containing the model type, estimated coefficients, and MSE of beta.
     """
+
+
     
     if method == 'linear':
         model = LinearRegression()
@@ -91,3 +93,25 @@ def MyModel(X, y, beta_true, method, quantile=0.5):
             'mse': mse_beta
         }
         return results
+    
+    if method == 'ridgeless':
+        n, p = X.shape
+        
+        if p < n:
+            # Underparameterized case: β̂ = (X'X)^(-1)X'y
+            beta_hat = np.linalg.solve(X.T @ X, X.T @ y)
+        else:
+            # Overparameterized case: β̂ = X'(XX')^(-1)y
+            beta_hat = X.T @ np.linalg.solve(X @ X.T, y)
+        
+        # Compute MSE of coefficient estimates
+        mse_beta = np.mean((beta_hat - beta_true) ** 2)
+        
+        results = {
+            'model_type': 'Ridgeless Regression',
+            'beta_hat': beta_hat,
+            'mse': mse_beta
+        }
+        return results
+    
+    raise ValueError(f"Unknown method: {method}. Choose from 'linear', 'quantile', 'huber', or 'ridgeless'.")
