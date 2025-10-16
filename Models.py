@@ -34,7 +34,7 @@ def MyModel(X, y, beta_true, method, quantile=0.5):
         beta_hat = model.coef_
         
         # Compute MSE of coefficient estimates
-        mse_beta = np.mean((beta_hat - beta_true) ** 2)
+        mse_beta = np.sum((beta_hat - beta_true) ** 2)
         
         results = {
             'model_type': 'Linear Regression',
@@ -54,7 +54,7 @@ def MyModel(X, y, beta_true, method, quantile=0.5):
         beta_hat = model.coef_
         
         # Compute MSE of coefficient estimates
-        mse_beta = np.mean((beta_hat - beta_true) ** 2)
+        mse_beta = np.sum((beta_hat - beta_true) ** 2)
         
         results = {
             'model_type': 'Quantile Regression',
@@ -83,7 +83,7 @@ def MyModel(X, y, beta_true, method, quantile=0.5):
         beta_hat = model.coef_ / scaler.scale_
         
         # Compute MSE of coefficient estimates
-        mse_beta = np.mean((beta_hat - beta_true) ** 2)
+        mse_beta = np.sum((beta_hat - beta_true) ** 2)
         
         results = {
             'model_type': 'Huber Regression',
