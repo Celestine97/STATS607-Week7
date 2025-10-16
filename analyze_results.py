@@ -181,6 +181,7 @@ def plot_figure2(dfs, output="figure2_reproduction.pdf"):
     plt.tight_layout()
     plt.savefig(output, dpi=300, bbox_inches='tight')
     print(f"\n✓ Saved Figure 2 to: {output}")
+    plt.savefig("figure2_reproduction.png", dpi=300, bbox_inches='tight')  # Add this line
     plt.show()
 
 

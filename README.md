@@ -53,4 +53,4 @@ python analyze_results.py  # Create Figure 2
 - Reproduces double descent: risk peaks at γ=1 then decreases
 - Shows benign overfitting in overparameterized regime (γ>1)
 
-
+![Figure 2 Reproduction](figure2_reproduction.png)
