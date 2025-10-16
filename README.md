@@ -1,16 +1,16 @@
 # Studio 08 - Benign Overfitting in Ridgeless Regression
 
-This is the *studio8* branch, rather than the *main* branch.
+**Important**: This project is on the `studio8` branch, not `main`.
 
 ## Overview
 This project reproduces Figure 2 from Hastie et al. (2022), demonstrating the "double descent" phenomenon in ridgeless least squares regression.
 
 ## Installation
 
-Clone using the web URL:
+Clone using the web URL (clone the `studio8` branch directly):
 
 ```bash
-git clone https://github.com/Celestine97/STATS607-Week7.git
+git clone -b studio8 https://github.com/Celestine97/STATS607-Week7.git
 cd STATS607-Week7
 ```
 
