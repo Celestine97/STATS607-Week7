@@ -32,9 +32,9 @@ def evaluate_one_run(n, ar, df, rho, snr, rep, methods, rng):
         "method": methods[0],
         "n": n,
         "ar": ar,
-        "df": df,
-        "rho": rho,
-        "SNR": snr,
+        #"df": df,
+        #"rho": rho,
+        #"SNR": snr,
         "rep": rep,
         "mse": mse,
     })
@@ -90,6 +90,10 @@ def run_simulations(
         results = [res for sublist in results_nested for res in sublist]
 
         df_results = pd.DataFrame(results)
+        if n_sim == 1:
+            df_results['sd_mse'] = 0.0
+        else:
+            df_results['sd_mse'] = np.std(df_results['mse'])
         df_results.to_csv(f"simulation_results_n_sim{n_sim}.csv", index=False)
         print(f"Saved results to simulation_results_n_sim{n_sim}.csv with {len(df_results)} rows.")
     pass
