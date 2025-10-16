@@ -149,24 +149,64 @@ def generate_data(n, p, beta, df, rho=0.5, rng=None):
     
     return X, y
 
-# Example usage:
+
+def generate_linear_model(n=200, gamma=1.0, sigma2=1.0, r2=5.0, rng=None):
+    """
+    Generate data for the linear model:
+        y = Xβ + σε,   X_ij, ε_i ~ N(0,1)
+        β = sqrt(r² / p) * 1_p
+    where p = floor(gamma * n).
+
+    Parameters
+    ----------
+    n : int
+        Number of observations.
+    gamma : float
+        Aspect ratio (defines p = floor(gamma * n)).
+    sigma2 : float
+        Noise variance.
+    r2 : float
+        Signal strength parameter.
+    rng : np.random.Generator, optional
+        Random number generator.
+
+    Returns
+    -------
+    X : np.ndarray of shape (n, p)
+        Design matrix.
+    y : np.ndarray of shape (n,)
+        Response vector.
+    beta : np.ndarray of shape (p,)
+        True coefficient vector.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    p = int(np.floor(gamma * n))
+    sigma = np.sqrt(sigma2)
+
+    # Generate X and epsilon
+    X = rng.normal(0, 1, size=(n, p))
+    eps = rng.normal(0, 1, size=n)
+
+    # Define beta
+    beta = np.sqrt(r2 / p) * np.ones(p)
+
+    # Generate response
+    y = X @ beta + sigma * eps
+
+    return X, y, beta
+
+
+# Example usage
 if __name__ == "__main__":
-    # Set ONE master seed at the top
-    seed = 42
-    rng = np.random.default_rng(seed)
-    
-    # Set parameters
-    n = 100
-    gamma = 0.5  # aspect ratio
-    p = int(gamma * n)
-    snr = 5
-    df = 3
-    rho = 0.5
-    
-    # Generate data - pass the same rng to all functions
-    X_temp = generate_design_matrix(n, p, rho=rho, rng=rng)
-    beta = generate_beta(p, snr=snr, X=X_temp, rng=rng)
-    X, y = generate_data(n, p, beta=beta, df=df, rho=rho, rng=rng)
-    
-    print(f"Generated data: X.shape = {X.shape}, y.shape = {y.shape}")
-    print(f"True beta (first 5): {beta[:5]}")
+    rng = np.random.default_rng(42)
+    n = 200
+    sigma2 = 1
+    r2 = 5
+
+    for gamma in [0.1, 0.5, 1, 2, 5, 10]:
+        X, y, beta = generate_linear_model(n=n, gamma=gamma, sigma2=sigma2, r2=r2, rng=rng)
+        print(f"γ={gamma:.1f}: X.shape={X.shape}, ||β||²={np.sum(beta**2):.3f}, y.var={np.var(y):.3f}")
+
+
