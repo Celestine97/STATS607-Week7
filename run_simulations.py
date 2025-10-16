@@ -1,117 +1,161 @@
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
-from analysis import plot_mse_vs_df, plot_small_multiples
+from analysis import plot_figure2
 from Models import MyModel
-from Data_Generation import *
+from Data_Generation import generate_linear_model
 
 
-def evaluate_one_run(n, ar, df, rho, snr, rep, methods, rng):
+def evaluate_one_run(n, gamma, r2, sigma2, rep, rng):
     """
-    Run one simulation replicate and evaluate multiple methods on the same dataset.
-    Returns a list of result dicts (one per method).
-
-    n: number of samples, fixed=200 here
-    ar: aspect ratio (p/n), here is gamma in the setting
+    Run one simulation replicate for ridgeless regression.
+    
+    Parameters:
+    -----------
+    n : int
+        Number of observations (fixed at 200)
+    gamma : float
+        Aspect ratio p/n
+    r2 : float
+        Signal strength (fixed at 5)
+    sigma2 : float
+        Noise variance (fixed at 1)
+    rep : int
+        Replicate number
+    rng : np.random.Generator
+        Random number generator
+    
+    Returns:
+    --------
+    dict with gamma, rep, and MSE
     """
-    p = int(n * ar)
-
-    # Generate data with true beta
-    # X_temp = generate_design_matrix(n, p, rho=rho, rng=rng)
-    # beta = generate_beta(p, snr=snr, X=X_temp, rng=rng)
-    # X, y = generate_data(n, p, beta=beta, df=df, rho=rho, rng=rng)
-    X, y, beta = generate_linear_model(n=n, gamma=ar, r2=snr, sigma2=1.0, rng=rng)
-
-    results = []
-    methods = ['ridgeless']  # Currently only ridgeless implemented
-
-    model_results = MyModel(X, y, beta_true=beta, method=methods[0], quantile=0.5)
+    # Generate data
+    X, y, beta = generate_linear_model(n=n, gamma=gamma, r2=r2, sigma2=sigma2, rng=rng)
+    
+    # Fit ridgeless regression
+    model_results = MyModel(X, y, beta_true=beta, method='ridgeless')
     mse = model_results["mse"]
-
-    results.append({
-        "method": methods[0],
-        "n": n,
-        "ar": ar,
-        #"df": df,
-        #"rho": rho,
-        #"SNR": snr,
+    
+    return {
+        "gamma": gamma,
         "rep": rep,
         "mse": mse,
-    })
-    return results
+    }
+
 
 def run_simulations(
     n=200,
-    aspect_ratio=[0.2, 0.5, 0.8],
-    dfs=[1, 2, 3, 5, 10, 15, 20, np.inf],
-    rhos=[0.2],
-    snrs=[1, 5, 10],
-    reps=[1, 50, 1000],
-    methods=['ridgeless'],
+    r2=5.0,
+    sigma2=1.0,
     n_jobs=-1,
     seed=0,
 ):
     """
-    Run simulation grid: for each combination of parameters,
-    Run 5000 times (rep=1), 100 times (rep=50), or 5 times (rep=1000).
-    Computes MSE of coefficient estimates: MSE(β̂) = mean((β̂ - β)²)
+    Run simulation for ridgeless regression across three regimes.
+    
+    Regime 1 (nsim=1): 5000 scenarios, gamma in [0.1, 10] (log-spaced)
+    Regime 2 (nsim=50): 100 scenarios, gamma in [0.1, 10] (log-spaced)
+    Regime 3 (nsim=1000): 5 scenarios, gamma in {0.2, 0.5, 0.8, 2, 5}
+    
+    For each scenario, compute:
+    - MSE_hat: mean of MSE across replicates
+    - se_MSE: standard error of MSE (0 when nsim=1)
     """
-
     rng_master = np.random.default_rng(seed)
-    for n_sim in reps:
-        if n_sim == 1:
-            gamma_values = np.logspace(np.log10(0.1), np.log10(10), 5000)
-        elif n_sim == 50:
-            gamma_values = np.logspace(np.log10(0.1), np.log10(10), 100)
-        elif n_sim == 1000:
-            gamma_values = np.array([0.2, 0.5, 0.8, 2, 5])
+    
+    # Define the three regimes
+    regimes = [
+        (1, np.logspace(np.log10(0.1), np.log10(10), 5000)),
+        (50, np.logspace(np.log10(0.1), np.log10(10), 100)),
+        (1000, np.array([0.2, 0.5, 0.8, 2, 5]))
+    ]
+    
+    for nsim, gamma_values in regimes:
+        print(f"\n{'='*60}")
+        print(f"Running regime: nsim={nsim}, n_scenarios={len(gamma_values)}")
+        print(f"{'='*60}")
+        
+        # Create parameter grid: (gamma, rep)
         param_grid = [
-            (ar, rep)
-            for ar in gamma_values
-            for rep in range(n_sim)
+            (gamma, rep)
+            for gamma in gamma_values
+            for rep in range(nsim)
         ]
-
-        print(f"Running {len(param_grid)} total simulation runs...")
-
-
-        results_nested = Parallel(n_jobs=n_jobs)(
+        
+        total_runs = len(param_grid)
+        print(f"Total simulation runs: {total_runs}")
+        
+        # Run simulations in parallel
+        results = Parallel(n_jobs=n_jobs, verbose=10)(
             delayed(evaluate_one_run)(
-                n=n, 
-                ar=ar, 
-                df=dfs[0], 
-                rho=rhos[0], 
-                snr=snrs[0], 
+                n=n,
+                gamma=gamma,
+                r2=r2,
+                sigma2=sigma2,
                 rep=rep,
-                methods=methods,
                 rng=np.random.default_rng(rng_master.integers(1e9))
             )
-            for (ar, rep) in param_grid
+            for (gamma, rep) in param_grid
         )
-        results = [res for sublist in results_nested for res in sublist]
-
+        
+        # Convert to DataFrame
         df_results = pd.DataFrame(results)
-        if n_sim == 1:
-            df_results['sd_mse'] = 0.0
+        
+        # Aggregate by gamma: compute mean and SE
+        if nsim == 1:
+            # No SE when only 1 replicate
+            df_summary = df_results.groupby('gamma').agg(
+                MSE_hat=('mse', 'mean'),
+            ).reset_index()
+            df_summary['se_MSE'] = 0.0
+            df_summary['nsim'] = 1
         else:
-            df_results['sd_mse'] = np.std(df_results['mse'])
-        df_results.to_csv(f"simulation_results_n_sim{n_sim}.csv", index=False)
-        print(f"Saved results to simulation_results_n_sim{n_sim}.csv with {len(df_results)} rows.")
-    pass
+            # Compute mean and SE across replicates
+            df_summary = df_results.groupby('gamma').agg(
+                MSE_hat=('mse', 'mean'),
+                se_MSE=('mse', lambda x: np.std(x, ddof=1) / np.sqrt(len(x)))
+            ).reset_index()
+            df_summary['nsim'] = nsim
+        
+        # Reorder columns
+        df_summary = df_summary[['nsim', 'gamma', 'MSE_hat', 'se_MSE']]
+        
+        # Save both formats
+        csv_file = f"simulation_results_nsim{nsim}.csv"
+        pkl_file = f"simulation_results_nsim{nsim}.pkl"
+        
+        df_summary.to_csv(csv_file, index=False)
+        df_summary.to_pickle(pkl_file)
+        
+        print(f"\n✓ Saved {len(df_summary)} scenarios to:")
+        print(f"  - {csv_file}")
+        print(f"  - {pkl_file}")
+        
+        # Print summary statistics
+        print(f"\nSummary statistics:")
+        print(f"  Gamma range: [{df_summary['gamma'].min():.3f}, {df_summary['gamma'].max():.3f}]")
+        print(f"  MSE range: [{df_summary['MSE_hat'].min():.3f}, {df_summary['MSE_hat'].max():.3f}]")
+        if nsim > 1:
+            print(f"  SE range: [{df_summary['se_MSE'].min():.4f}, {df_summary['se_MSE'].max():.4f}]")
 
-## Need to rewrite analysis functions to work with new results format
-def analyze_results(df_results):
-    """
-    Aggregate results by df and method, then call plotting functions.
-    """
-    df_summary = (
-        df_results.groupby(["SNR", "df", "method"])["mse"]
-        .mean()
-        .reset_index()
-    )
-
-    plot_mse_vs_df(df_summary, output="mse_vs_df.png")
-    plot_small_multiples(df_results, output="mse_small_multiples.png")
 
 if __name__ == "__main__":    
-    df_results = run_simulations()
-    print("Simulation and analysis complete.")
+    print("Starting ridgeless regression simulation study...")
+    print("Parameters: n=200, r²=5, σ²=1")
+    print("\nThis will run 3 regimes:")
+    print("  - nsim=1: 5000 scenarios")
+    print("  - nsim=50: 100 scenarios")
+    print("  - nsim=1000: 5 scenarios")
+    print("\nTotal runs: 5000 + 5000 + 5000 = 15,000")
+    print("="*60)
+    
+    run_simulations()
+    
+    print("\n" + "="*60)
+    print("✓ Simulation complete!")
+    print("✓ Files generated:")
+    print("  - simulation_results_nsim1.csv")
+    print("  - simulation_results_nsim50.csv")
+    print("  - simulation_results_nsim1000.csv")
+    print("\nNext step: Run analysis to generate Figure 2")
+    print("="*60)
