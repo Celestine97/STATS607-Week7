@@ -58,41 +58,43 @@ def run_simulations(
     """
 
     rng_master = np.random.default_rng(seed)
-    for rep in reps:
-        if rep not in [1, 50, 1000]:
-            raise ValueError("rep must be one of [1, 50, 1000]")
-
-        if rep == 1:
+    for n_sim in reps:
+        if n_sim == 1:
             gamma_values = np.logspace(np.log10(0.1), np.log10(10), 5000)
-        elif rep == 50:
+        elif n_sim == 50:
             gamma_values = np.logspace(np.log10(0.1), np.log10(10), 100)
-        elif rep == 1000:
+        elif n_sim == 1000:
             gamma_values = np.array([0.2, 0.5, 0.8, 2, 5])
         param_grid = [
             (ar, rep)
             for ar in gamma_values
-            for rep in range(reps)
+            for rep in range(n_sim)
         ]
 
         print(f"Running {len(param_grid)} total simulation runs...")
 
 
-    results_nested = Parallel(n_jobs=n_jobs)(
-        delayed(evaluate_one_run)(
-            ar, rep,
-            methods=methods,
-        rng=np.random.default_rng(rng_master.integers(1e9))
+        results_nested = Parallel(n_jobs=n_jobs)(
+            delayed(evaluate_one_run)(
+                n=n, 
+                ar=ar, 
+                df=dfs[0], 
+                rho=rhos[0], 
+                snr=snrs[0], 
+                rep=rep,
+                methods=methods,
+                rng=np.random.default_rng(rng_master.integers(1e9))
+            )
+            for (ar, rep) in param_grid
         )
-        for (ar, rep) in param_grid
-    )
-    results = [res for sublist in results_nested for res in sublist]
+        results = [res for sublist in results_nested for res in sublist]
 
-    df_results = pd.DataFrame(results)
-    df_results.to_csv("simulation_results.csv", index=False)
-    print(f"Saved results to simulation_results.csv with {len(df_results)} rows.")
+        df_results = pd.DataFrame(results)
+        df_results.to_csv(f"simulation_results_n_sim{n_sim}.csv", index=False)
+        print(f"Saved results to simulation_results_n_sim{n_sim}.csv with {len(df_results)} rows.")
+    pass
 
-    return df_results
-
+## Need to rewrite analysis functions to work with new results format
 def analyze_results(df_results):
     """
     Aggregate results by df and method, then call plotting functions.
@@ -106,7 +108,6 @@ def analyze_results(df_results):
     plot_mse_vs_df(df_summary, output="mse_vs_df.png")
     plot_small_multiples(df_results, output="mse_small_multiples.png")
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     df_results = run_simulations()
-    analyze_results(df_results)
     print("Simulation and analysis complete.")
